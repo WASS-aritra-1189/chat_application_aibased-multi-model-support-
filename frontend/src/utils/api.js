@@ -2,7 +2,7 @@
 import axios from 'axios';
 import BASE_URL from '../config/baseUrl';
  
-const api = axios.create({ baseURL: BASE_URL/api });
+const api = axios.create({ baseURL: BASE_URL});
  
 export const getProviders = () => api.get('/providers');
 export const createConversation = (data) => api.post('/conversations', data);
