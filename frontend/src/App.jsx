@@ -38,9 +38,9 @@ export default function App() {
 const styles = {
   app: { display: 'flex', flexDirection: 'column', height: '100vh', background: '#080d14' },
   nav: {
-    display: 'flex', alignItems: 'center', padding: '0 24px', height: '56px',
+    display: 'flex', alignItems: 'center', padding: '0 16px', height: '56px',
     background: 'rgba(8,13,20,0.95)', borderBottom: '1px solid rgba(255,255,255,0.06)',
-    backdropFilter: 'blur(12px)', flexShrink: 0, gap: '32px',
+    backdropFilter: 'blur(12px)', flexShrink: 0, gap: '16px',
     boxShadow: '0 1px 0 rgba(255,255,255,0.04)',
   },
   brand: { display: 'flex', alignItems: 'center', gap: '10px', marginRight: 'auto' },

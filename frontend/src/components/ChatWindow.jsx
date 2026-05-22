@@ -172,8 +172,8 @@ const styles = {
   cancelledTag: { fontSize: '12px', color: '#f87171', background: 'rgba(248,113,113,0.1)', padding: '3px 10px', borderRadius: '6px' },
 
   messages: {
-    flex: 1, overflowY: 'auto', padding: '24px',
-    display: 'flex', flexDirection: 'column', gap: '20px',
+    flex: 1, overflowY: 'auto', padding: '16px',
+    display: 'flex', flexDirection: 'column', gap: '16px',
   },
 
   emptyChat: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: '12px', marginTop: '80px' },
@@ -181,7 +181,7 @@ const styles = {
   emptyChatTitle: { color: '#94a3b8', fontSize: '18px', fontWeight: 600 },
   emptyChatSub: { color: '#334155', fontSize: '13px' },
 
-  msgRow: { display: 'flex', gap: '12px', alignItems: 'flex-start', maxWidth: '820px' },
+  msgRow: { display: 'flex', gap: '8px', alignItems: 'flex-start', maxWidth: '100%' },
   userRow: { alignSelf: 'flex-end', flexDirection: 'row-reverse' },
   assistantRow: { alignSelf: 'flex-start' },
 
@@ -193,7 +193,7 @@ const styles = {
   userAvatar: { background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: '#fff' },
   aiAvatar: { background: 'linear-gradient(135deg, #0f172a, #1e293b)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.3)' },
 
-  bubble: { padding: '12px 16px', borderRadius: '14px', maxWidth: '680px' },
+  bubble: { padding: '10px 14px', borderRadius: '14px', maxWidth: 'min(680px, calc(100vw - 80px))' },
   userBubble: {
     background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
     color: '#fff', borderBottomRightRadius: '4px',
@@ -220,7 +220,7 @@ const styles = {
   },
 
   inputArea: {
-    padding: '16px 24px 20px', borderTop: '1px solid rgba(255,255,255,0.06)',
+    padding: '12px 16px 16px', borderTop: '1px solid rgba(255,255,255,0.06)',
     background: 'rgba(8,13,20,0.9)', backdropFilter: 'blur(8px)',
   },
   inputBox: {

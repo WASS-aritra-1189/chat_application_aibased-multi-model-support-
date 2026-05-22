@@ -32,6 +32,13 @@ style.textContent = `
 
   .hover-bg:hover { background: rgba(255,255,255,0.04) !important; }
   .hover-bright:hover { filter: brightness(1.1); }
+
+  @media (max-width: 768px) {
+    .mobile-hide { display: none !important; }
+    .mobile-full { width: 100% !important; min-width: unset !important; }
+    .mobile-row { flex-direction: row !important; }
+    .mobile-col { flex-direction: column !important; }
+  }
 `;
 document.head.appendChild(style);
 

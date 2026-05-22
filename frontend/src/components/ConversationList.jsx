@@ -1,6 +1,6 @@
 import { cancelConversation } from '../utils/api';
 
-export default function ConversationList({ conversations, activeId, onSelect, onCancel, onNew }) {
+export default function ConversationList({ conversations, activeId, onSelect, onCancel, onNew, onClose }) {
   const handleCancel = async (e, sessionId) => {
     e.stopPropagation();
     await cancelConversation(sessionId);
@@ -14,6 +14,9 @@ export default function ConversationList({ conversations, activeId, onSelect, on
           <p style={styles.headerLabel}>Conversations</p>
           <p style={styles.headerCount}>{conversations.length} total</p>
         </div>
+        {onClose && (
+          <button style={styles.closeBtn} onClick={onClose} title="Close sidebar">✕</button>
+        )}
       </div>
 
       <div style={styles.newBtnWrap}>
@@ -87,6 +90,11 @@ const styles = {
   header: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
     padding: '20px 16px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)',
+  },
+  closeBtn: {
+    background: 'none', border: 'none', color: '#64748b', cursor: 'pointer',
+    fontSize: '16px', padding: '4px 8px', borderRadius: '6px',
+    lineHeight: 1, transition: 'color 0.15s',
   },
   headerLabel: { color: '#f1f5f9', fontWeight: 600, fontSize: '14px' },
   headerCount: { color: '#475569', fontSize: '11px', marginTop: '2px' },

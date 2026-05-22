@@ -1,0 +1,129 @@
+# Architecture Notes
+
+---
+
+## 1. Ingestion Flow
+
+Every LLM call passes through a single SDK wrapper (`sdk/llmClient.js`) — no provider is called directly from routes. This ensures metadata is always captured regardless of which provider is used.
+
+```
+User sends message
+       │
+       ▼
+POST /api/conversations/:id/messages
+       │
+       ▼
+llmClient.chat()          ← SDK wrapper starts timer, generates requestId
+       │
+       ├── calls provider (groq / openrouter / etc.)
+       │         │
+       │         ▼
+       │   streams SSE chunks back to browser
+       │
+       └── finally block (always runs, even on error)
+               │
+               ▼
+         enqueueLog(metadata)
+               │
+               ├── Redis available? → Bull queue job (async, non-blocking)
+               │                           │
+               │                           ▼
+               │                    worker processes job
+               │                           │
+               └── Redis down? ────────────┘
+                                           │
+                                           ▼
+                                  PII redaction applied
+                                           │
+                                           ▼
+                                  MongoDB inferencelogs
+```
+
+Key point — the `finally` block guarantees logs are always sent even if the LLM call fails or the user cancels mid-stream.
+
+---
+
+## 2. Logging Strategy
+
+**What is logged:**
+
+| Field | Source |
+|-------|--------|
+| `provider` / `model` | SDK wrapper param |
+| `latencyMs` | `Date.now() - startTime` in finally block |
+| `promptTokens` / `completionTokens` / `totalTokens` | Final SSE chunk (`stream_options: { include_usage: true }`) |
+| `status` | `success` by default, set to `error` in catch block |
+| `errorMessage` | Caught exception message |
+| `sessionId` | Passed from conversation route |
+| `requestId` | UUID generated per request — used for deduplication |
+| `inputPreview` | Last user message, first 200 chars |
+| `outputPreview` | Accumulated stream output, first 200 chars |
+| `timestamp` | Set at log creation time |
+
+**PII redaction** is applied to `inputPreview` and `outputPreview` before any write to MongoDB:
+- Emails → `[EMAIL]`
+- Phone numbers → `[PHONE]`
+- SSNs → `[SSN]`
+- Credit cards → `[CARD]`
+- IP addresses → `[IP]`
+- Names (heuristic) → `[NAME]`
+
+**Why previews only (200 chars)?**
+Full message content is stored in the `conversations` collection. The inference log only needs enough context for observability — not a full copy of every message. This keeps the `inferencelogs` collection lean and fast to aggregate.
+
+**External ingestion endpoint** (`POST /api/logs/ingest`) allows any external service to push logs into the same pipeline with the same validation, PII redaction, and storage — making the ingestion layer provider-agnostic.
+
+---
+
+## 3. Scaling Considerations
+
+**Backend is stateless**
+The Express server holds no in-memory session state. Every request reads from MongoDB. This means you can run multiple backend replicas behind a load balancer with no coordination needed. The k8s deployment already runs 2 replicas.
+
+**Queue decouples ingestion from request latency**
+Bull + Redis means log writes never block the HTTP response. Under high load, jobs queue up in Redis and workers drain them at their own pace. Bull supports multiple concurrent workers — just scale the worker process horizontally.
+
+**MongoDB indexes are query-specific**
+Three indexes on `inferencelogs`:
+- `sessionId` — for per-conversation log lookups
+- `timestamp DESC` — for time-range dashboard queries
+- `provider + timestamp DESC` — for per-provider breakdown queries
+
+Without these, dashboard aggregations would do full collection scans at scale.
+
+**Short context window (10 messages)**
+Keeps per-request token count bounded regardless of conversation length. Prevents runaway costs and avoids hitting provider context limits as conversations grow.
+
+**Frontend is static**
+The React build is served by Nginx. It can be moved to a CDN (CloudFront, etc.) with zero code changes, removing frontend load from the server entirely.
+
+---
+
+## 4. Failure Handling Assumptions
+
+**LLM provider failure**
+- Caught in the SDK try/catch block
+- `status` set to `error`, `errorMessage` stored in the log
+- Error is re-thrown so the HTTP response returns a proper error to the frontend
+- The frontend displays the error inline in the chat without crashing
+
+**Redis / queue failure**
+- On startup, the system probes Redis with a TCP connection before initialising Bull
+- If Redis is unreachable, the system logs one warning and falls back to direct MongoDB writes
+- If Redis goes down mid-operation, `enqueueLog` catches the Bull error and falls back to direct write
+- No log data is lost in either case
+
+**MongoDB write failure**
+- Logged as an error via Winston
+- The inference log is dropped — the conversation itself is unaffected
+- Assumption: losing an occasional log is acceptable; blocking the user response is not
+
+**Duplicate log submissions**
+- `requestId` has a unique index in MongoDB
+- Duplicate inserts are silently rejected at the DB level
+- The external ingestion endpoint does not currently return a distinct error for duplicates (noted as a known improvement)
+
+**Pod crashes in Kubernetes**
+- Both backend and frontend run 2 replicas — one pod crashing does not take down the service
+- Redis runs as a single StatefulSet — it is a single point of failure in the current setup (Redis Sentinel or Cluster would fix this)
+- Backend pods have a readiness probe on `/health` — unhealthy pods are removed from the load balancer automatically before receiving traffic
