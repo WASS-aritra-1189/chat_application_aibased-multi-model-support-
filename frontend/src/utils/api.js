@@ -1,5 +1,5 @@
 import axios from 'axios';
-
+import BASE_URL from '../config/baseUrl'
 const api = axios.create({ baseURL: '/api' });
 
 export const getProviders = () => api.get('/providers');
