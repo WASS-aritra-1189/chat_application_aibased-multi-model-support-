@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { saveMessages } from '../utils/api';
+import BASE_URL from '../config/baseUrl';
 
 export function useStream() {
   const [streaming, setStreaming] = useState(false);
@@ -12,7 +13,7 @@ export function useStream() {
     abortRef.current = controller;
 
     try {
-      const response = await fetch(`/api/conversations/${sessionId}/messages`, {
+      const response = await fetch(`${BASE_URL}/conversations/${sessionId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: userContent }),
